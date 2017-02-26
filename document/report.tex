@@ -68,5 +68,55 @@
 \label{fig:class-attribute}
 \end{figure}
 
+\section{動的分析}
+\subsection{状態遷移図}
+図\ref{fig:state-transition}にアプリケーション全体の状態遷移図を示す。
+
+\begin{figure}[hp]
+\centering
+\includegraphics[width=15cm]{./image/state-transition.eps}
+\caption{属性を書き込んだクラス図}
+\label{fig:state-transition}
+\end{figure}
+
+\subsection{シーケンス図}
+全体の流れとしては以下のようになる。
+\begin{enumerate}
+ \item 問題を入力する。
+ \item 左部出題エリアより1行取得する。\label{enum:2}
+ \item それをもとに、解エリアのその行で答えが確定するマスに回答を書き込む。\label{enum:3}
+ \item \ref{enum:2}〜\ref{enum:3}を全行で繰り返す。
+ \item 上部出題エリアより1列取得する。\label{enum:5}
+ \item それをもとに、解エリアのその列で答えが確定するマスに回答を書き込む。\label{enum:6}
+ \item \ref{enum:5}〜\ref{enum:6}を全列で繰り返す。
+ \item 全てのマスが確定しているか確認する。確定していれば終了。していなければ\ref{enum:2}に戻る。
+\end{enumerate}
+
+図\ref{fig:sequence-diagram}に回答検索のシーケンス図を示す。
+
+\begin{figure}[hp]
+\centering
+\includegraphics[width=15cm]{./image/sequence-diagram.eps}
+\caption{回答検索のシーケンス図}
+\label{fig:sequence-diagram}
+\end{figure}
+
+\subsection{クラス図の変更}
+図\ref{fig:sequence-diagram}のシーケンス図に合わせたクラス図を\ref{fig:class-sequence}に示す。
+
+\begin{figure}[hp]
+\centering
+\includegraphics[width=15cm]{./image/class-sequence.eps}
+\caption{属性を書き込んだクラス図}
+\label{fig:class-sequence}
+\end{figure}
+
+
+
+
+
+
+
+
 \end{document}
 
