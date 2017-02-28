@@ -3,6 +3,7 @@
 
 \usepackage{jsaisig}
 \usepackage[dvipdfmx]{graphicx}
+\usepackage{listings,jlisting}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -15,8 +16,6 @@
 
 
 \maketitle
-\thispagestyle{empty}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{文章化}
@@ -127,13 +126,255 @@
 
 \begin{enumerate}
  \item 解エリアから一行（一列）を取りし、出題エリアからも同じ行（列）を取り出す。
- \item 出題エリアの行の和が0の場合、全て白マスとし、終了する。
- \item 解エリアの行の中から、白マスを除いたマス数を数える。それが出題エリアの行の和と同じ、もしくは1少なければその行の答えを確定し、終了する。
- \item 解エリアの最初から最初の白マスまでの長さを調べる。その長さが出題エリアの最初の値と同じであれば、そこまで全て黒マスにする。またさらに次の白マスまでの長さを調べ、それが出題エリアの次の値と同じであればさらに黒マスにする。これを繰り返す。
- \item 解エリアの最後から最後の白マスまでの長さを調べる。その長さが出題エリアの最後の値と同じであれば、そこまで全て黒マスにする。またさらに次の白マスまでの長さを調べ、それが出題エリアの次の値と同じであればさらに黒マスにする。これを繰り返す。
- \item 未確定の出題マスが一つになった場合、最初から塗っても、最後から塗っても重なる部分が存在するため、そこを黒マスで確定させる。
+ \item 一行の解エリアで未確定マスがそれぞれ取りうる値の全パターンを用意する。
+ \item それらパターンを、出題エリアの条件に合うもののみに絞り込む。
+ \item 絞り込まれたパターン全てで共通の値を保つ場合、その値を確定し黒マスか白マスか解エリアに書き込む。
 \end{enumerate}
 以上の作業を行で全てやった後、列で全てやり、また行に戻って繰り返す。
+
+\section{実装}
+pythonを使用し、実装を行った。
+
+\subsection{仕様書}
+python main.pyと実行することでプログラムが開始される。
+まず、図\ref{fig:input}のようにデータを入力する。
+
+\begin{figure}[hp]
+\centering
+\includegraphics[width=15cm]{./image/input.png}
+\caption{データの入力方法}
+\label{fig:input}
+\end{figure}
+
+すると、図\ref{fig:calc}のようにイラストロジックを自動で解き始める。
+
+\begin{figure}[hp]
+\centering
+\includegraphics[width=15cm]{./image/calc.png}
+\caption{イラストロジックの回答計算中}
+\label{fig:calc}
+\end{figure}
+
+最終的に、図\ref{fig:answer}のように解けたイラストロジックが表示される。
+
+\begin{figure}[hp]
+\centering
+\includegraphics[width=15cm]{./image/answer.png}
+\caption{イラストロジックの解}
+\label{fig:answer}
+\end{figure}
+
+\clearpage
+\subsection{ソースコード}
+以下にソースコードを記述する。
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+[main.py]
+
+# -*- coding:utf-8 -*-
+
+import illustration
+import sys
+
+if __name__ == '__main__':
+    issueUp = []
+    issueLeft = []
+
+    print '上の出題エリアの情報を書き込んでください'
+    while True:
+        input = sys.stdin.readline()
+        if input == '\n':
+            break
+        input = input.rstrip()
+        issueUp.append(map(lambda data: int(data), input.split()))
+
+    print '左の出題エリアの情報を書き込んでください'
+    while True:
+        input = sys.stdin.readline()
+        if input == '\n':
+            break
+        input = input.rstrip()
+        issueLeft.append(map(lambda data: int(data), input.split()))
+
+    illustration = illustration.Illustration(issueUp, issueLeft)
+    print '[Start]'
+    illustration.calc()
+    print '[Answer]'
+    illustration.show()
+
+\end{lstlisting}
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+[illustration.py]
+
+# -*- coding:utf-8 -*-
+
+import various
+
+class Illustration:
+    def __init__(self, issueUp, issueLeft):
+        self.__issue = various.Issue(issueUp, issueLeft)
+        self.__m = len(issueUp[0])
+        self.__n = len(issueLeft)
+        self.__answer = various.Answer(self.__m, self.__n)
+
+    def calc(self):
+        i = 0
+        lineM = various.Line(self.__m)
+        lineN = various.Line(self.__n)
+        while True:
+            upFlag = 0
+            leftFlag = 0
+            for m in range(self.__m):
+                issueLine = self.__issue.get(m, 0)
+                answerLine = self.__answer.get(m, 0)
+                upFlag += lineM.calc(issueLine, answerLine)
+
+            for n in range(self.__n):
+                issueLine = self.__issue.get(n, 1)
+                answerLine = self.__answer.get(n, 1)
+                leftFlag += lineN.calc(issueLine, answerLine)
+
+            self.show()
+            print ''
+
+            if upFlag == 0 and leftFlag == 0:
+                break
+
+    def show(self):
+        self.__answer.show()
+\end{lstlisting}
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=single]
+[various.py]
+
+# -*- coding:utf-8 -*-
+
+import sys
+import numpy as np
+import copy
+
+class IssueCell:
+    def __init__(self, data):
+        self.__data = data
+
+    def get(self):
+        return self.__data
+
+class Issue:
+    def __init__(self, issueUp, issueLeft):
+        self.__up = np.array(map(lambda line:map(lambda data:IssueCell(data), line), issueUp))
+        self.__left = np.array(map(lambda line:map(lambda data:IssueCell(data), line), issueLeft))
+
+    def get(self, target, flag):
+        if flag == 0:
+            return self.__up[:, target]
+        else:
+           return self.__left[target, :]
+
+class AnswerCell:
+    def __init__(self):
+        self.__label = ['  ', 'x ', '\x1b[40m  \x1b[49m']
+        self.__data = 0
+
+    def get(self):
+        return self.__data
+
+    def getString(self):
+        return self.__label[self.get()]
+
+    def set(self, data):
+        self.__data = data
+
+class Answer:
+    def __init__(self, m, n):
+        npdata = np.empty((n, m))
+        self.__data = np.array(map(lambda line:map(lambda cell:AnswerCell(), line), npdata))
+
+    def show(self):
+        for line in self.__data:
+            print '|',
+            for item in line:
+                sys.stdout.write(item.getString())
+            print '|'
+
+    def get(self, target, flag):
+        if flag == 0:
+            return self.__data[:, target]
+        else:
+            return self.__data[target, :]
+
+class Line:
+    def __init__(self, num):
+        npdata = np.empty(num)
+        answer = np.array(map(lambda cell:AnswerCell(), npdata))
+        self.__candidateInit = self.__candidate(answer, True)
+
+    def calc(self, issueLine, answerLine):
+        sum = 0
+        candidate = self.__candidate(answerLine)
+        match = filter(lambda line:self.__match(line, issueLine), candidate)
+        confirm = self.__confirm(match)
+        for i in range(len(answerLine)):
+            if answerLine[i].get() != confirm[i].get():
+                answerLine[i] = confirm[i]
+                sum += 1
+
+        return sum
+
+    def __candidate(self, answerLine, force=False):
+        candidateArray = []
+        sum = 0
+        for cell in answerLine:
+            sum += cell.get()
+        if sum == 0 and not force:
+            return self.__candidateInit
+
+        for cell in answerLine:
+            if cell.get() == 0:
+                cell.set(1)
+                duplicate = map(lambda cell:copy.deepcopy(cell), answerLine)
+                candidateArray += self.__candidate(duplicate)
+                cell.set(2)
+                duplicate = map(lambda cell:copy.deepcopy(cell), answerLine)
+                candidateArray += self.__candidate(duplicate)
+                cell.set(0)
+                return candidateArray
+
+        return [answerLine]
+
+    def __match(self, line, issueLine):
+        ans = [0]
+        for cell in line:
+            if cell.get() == 2:
+                ans[-1] += 1
+            elif cell.get() == 1 and ans[-1] != 0:
+                ans.append(0)
+
+        ans = filter(lambda data: data != 0, ans)
+        issue = map(lambda cell: cell.get(), issueLine)
+        issue = filter(lambda data: data != 0, issue)
+        return ans == issue
+
+    def __confirm(self, match):
+        temp = copy.deepcopy(match[0])
+        for line in match:
+            for i in range(len(line)):
+                if temp[i].get() != line[i].get():
+                    temp[i].set(0)
+        return temp
+\end{lstlisting}
+
+\subsection{クラス図の訂正}
+図\ref{fig:class-true}に実際に実装を行ったクラス図を示す。
+
+\begin{figure}[hp]
+\centering
+\includegraphics[width=15cm]{./image/class-true.eps}
+\caption{実装を行ったクラス図}
+\label{fig:class-true}
+\end{figure}
+
 
 \end{document}
 
